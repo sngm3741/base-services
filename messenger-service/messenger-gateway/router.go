@@ -45,7 +45,7 @@ type handler struct {
 func (h *handler) health(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Cache-Control", "no-store, max-age=0")
 	writeJSON(w, http.StatusOK, map[string]string{
-		"status": "ok",
+		"status": "ok-test",
 		"date":   time.Now().In(jst).Format(time.RFC3339),
 	})
 }
