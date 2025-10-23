@@ -51,7 +51,7 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-            cd ~/project/test
+            cd ~/infra
             git fetch origin main
             git reset --hard origin/main
             docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker
