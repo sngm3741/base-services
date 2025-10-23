@@ -78,7 +78,7 @@ func main() {
 		})
 	})
 
-	router.Post("message/webhook", lineWebhookHandler(nc, cfg.lineSubject))
+	router.Post("/message/webhook", lineWebhookHandler(nc, cfg.lineSubject))
 
 	srv := &http.Server{
 		Addr:    cfg.httpAddress,
