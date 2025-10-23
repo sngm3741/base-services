@@ -1,0 +1,36 @@
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:alpine
+    labels:
+      - com.github.nginx-proxy.nginx=true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./letsencrypt:/etc/nginx/certs:rw
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+    restart: unless-stopped
+    networks:
+      - edge
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    env_file:
+      - ../.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/etc/nginx/certs:rw
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+    depends_on:
+      - nginx-proxy
+    restart: unless-stopped
+    networks:
+      - edge
+
+networks:
+  edge:
+    name: project01-edge
+    driver: bridge

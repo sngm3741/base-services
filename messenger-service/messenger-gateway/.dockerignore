@@ -1,0 +1,6 @@
+.git
+bin
+vendor
+tmp
+*.log
+*.out

@@ -1,0 +1,58 @@
+name: build-and-deploy
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  GHCR_IMAGE_PREFIX: ghcr.io/${{ secrets.GHCR_USER }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
+
+      - name: Build messenger-gateway image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/messenger-gateway:${{ github.sha }} ./messenger-service/messenger-gateway
+          docker tag $GHCR_IMAGE_PREFIX/messenger-gateway:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-gateway:latest
+          docker push $GHCR_IMAGE_PREFIX/messenger-gateway:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/messenger-gateway:latest
+
+      - name: Build messenger-line-webhook image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/messenger-line-webhook:${{ github.sha }} ./messenger-service/messenger-line/webhook
+          docker tag $GHCR_IMAGE_PREFIX/messenger-line-webhook:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-line-webhook:latest
+          docker push $GHCR_IMAGE_PREFIX/messenger-line-webhook:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/messenger-line-webhook:latest
+
+      - name: Build messenger-line-worker image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/messenger-line-worker:${{ github.sha }} ./messenger-service/messenger-line/worker
+          docker tag $GHCR_IMAGE_PREFIX/messenger-line-worker:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-line-worker:latest
+          docker push $GHCR_IMAGE_PREFIX/messenger-line-worker:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/messenger-line-worker:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Sakura VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd ~/project/test
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker
+            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker
