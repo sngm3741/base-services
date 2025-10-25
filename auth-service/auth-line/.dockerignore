@@ -1,0 +1,8 @@
+Dockerfile
+bin/
+vendor/
+.git
+.gitignore
+*.log
+*.local
+coverage.out

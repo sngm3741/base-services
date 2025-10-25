@@ -47,6 +47,19 @@ services:
     networks:
       - backend
 
+  auth-line:
+    image: ghcr.io/${GHCR_USER}/auth-line:latest
+    env_file:
+      - ./.env
+    restart: unless-stopped
+    networks:
+      - edge
+    environment:
+      - VIRTUAL_HOST=${AUTH_LINE_VIRTUAL_HOST}
+      - VIRTUAL_PORT=8080
+      - LETSENCRYPT_HOST=${AUTH_LINE_VIRTUAL_HOST}
+      - LETSENCRYPT_EMAIL=${AUTH_LINE_LETSENCRYPT_EMAIL}
+
 networks:
   edge:
     external: true

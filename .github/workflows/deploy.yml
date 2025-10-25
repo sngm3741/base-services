@@ -38,6 +38,13 @@ jobs:
           docker push $GHCR_IMAGE_PREFIX/messenger-line-worker:${{ github.sha }}
           docker push $GHCR_IMAGE_PREFIX/messenger-line-worker:latest
 
+      - name: Build auth-line image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/auth-line:${{ github.sha }} ./auth-service/auth-line
+          docker tag $GHCR_IMAGE_PREFIX/auth-line:${{ github.sha }} $GHCR_IMAGE_PREFIX/auth-line:latest
+          docker push $GHCR_IMAGE_PREFIX/auth-line:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/auth-line:latest
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -54,5 +61,5 @@ jobs:
             cd ~/infra
             git fetch origin main
             git reset --hard origin/main
-            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker
-            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker
+            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker auth-line
+            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line
