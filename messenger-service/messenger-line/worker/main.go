@@ -21,11 +21,14 @@ const (
 	defaultLineSubject      = "line.events"
 	defaultLinePushEndpoint = "https://api.line.me/v2/bot/message/push"
 	maxConnectRetry         = 10
+
+	welcomeText = "友だち追加ありがとうございます！アンケート投稿はマイページからどうぞ。分からないことがあれば気軽に聞いてくださいね。"
 )
 
 // linePayload は messenger-line-webhook から流れてくるメッセージ形式。
 type linePayload struct {
 	Destination string          `json:"destination"`
+	EventType   string          `json:"eventType"`
 	UserID      string          `json:"userId"`
 	Message     json.RawMessage `json:"message"`
 	ReceivedAt  time.Time       `json:"receivedAt"`
@@ -73,18 +76,25 @@ func handleMessage(data []byte, cfg config, client *http.Client) error {
 		return fmt.Errorf("payloadのJSONデコードに失敗: %w", err)
 	}
 
-	log.Printf("LINEイベント受信: destination=%s user=%s message=%s", payload.Destination, payload.UserID, string(payload.Message))
+	log.Printf("LINEイベント受信: destination=%s type=%s user=%s message=%s", payload.Destination, payload.EventType, payload.UserID, string(payload.Message))
 
-	text, err := extractMessageText(payload.Message)
-	if err != nil {
-		return fmt.Errorf("本文抽出に失敗: %w", err)
+	switch payload.EventType {
+	case "follow":
+		return deliverToLine(payload.UserID, welcomeMessage(), cfg, client)
+	case "message":
+		text, err := extractMessageText(payload.Message)
+		if err != nil {
+			return fmt.Errorf("本文抽出に失敗: %w", err)
+		}
+		return deliverToLine(payload.UserID, text, cfg, client)
+	default:
+		log.Printf("未対応イベント種別のためスキップ: type=%s user=%s", payload.EventType, payload.UserID)
+		return nil
 	}
+}
 
-	if err := deliverToLine(payload.UserID, text, cfg, client); err != nil {
-		return fmt.Errorf("LINE送信に失敗: %w", err)
-	}
-
-	return nil
+func welcomeMessage() string {
+	return welcomeText
 }
 
 // extractMessageText は Webhook ペイロードから送信本文を取り出します。

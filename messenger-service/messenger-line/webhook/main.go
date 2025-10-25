@@ -31,8 +31,9 @@ var jst = time.FixedZone("JST", 9*60*60)
 // lineMessagePayload はLINEイベントを標準化した中間フォーマット。
 type lineMessagePayload struct {
 	Destination string          `json:"destination"`
+	EventType   string          `json:"eventType"`
 	UserID      string          `json:"userId"`
-	Message     json.RawMessage `json:"message"`
+	Message     json.RawMessage `json:"message,omitempty"`
 	ReceivedAt  time.Time       `json:"receivedAt"`
 }
 
@@ -40,8 +41,9 @@ type lineMessagePayload struct {
 type lineEventsRequest struct {
 	Destination string `json:"destination"`
 	Events      []struct {
-		Type    string `json:"type"`
-		Message struct {
+		Type       string `json:"type"`
+		ReplyToken string `json:"replyToken"`
+		Message    *struct {
 			Type string `json:"type"`
 			ID   string `json:"id"`
 			Text string `json:"text"`
@@ -157,23 +159,34 @@ func parseLINEPayload(body []byte) (*lineMessagePayload, error) {
 	}
 
 	evt := req.Events[0]
-	message := map[string]string{
-		"message": evt.Message.Text,
-	}
-
-	msgJSON, err := json.Marshal(message)
-	if err != nil {
-		return nil, fmt.Errorf("messageエンコードに失敗: %w", err)
-	}
-
-	log.Printf("LINEイベント解析結果: user=%s text=%s", evt.Source.UserID, evt.Message.Text)
-
-	return &lineMessagePayload{
+	payload := &lineMessagePayload{
 		Destination: req.Destination,
+		EventType:   evt.Type,
 		UserID:      evt.Source.UserID,
-		Message:     json.RawMessage(msgJSON),
 		ReceivedAt:  time.Now(),
-	}, nil
+	}
+
+	switch evt.Type {
+	case "message":
+		if evt.Message == nil {
+			return nil, errors.New("messageイベントだが本文がありません")
+		}
+		msg := map[string]string{
+			"message": evt.Message.Text,
+		}
+		msgJSON, err := json.Marshal(msg)
+		if err != nil {
+			return nil, fmt.Errorf("messageエンコードに失敗: %w", err)
+		}
+		payload.Message = json.RawMessage(msgJSON)
+		log.Printf("LINE messageイベント解析: user=%s text=%s", evt.Source.UserID, evt.Message.Text)
+	case "follow":
+		log.Printf("LINE followイベント受信: user=%s", evt.Source.UserID)
+	default:
+		log.Printf("LINE未対応イベント: type=%s user=%s", evt.Type, evt.Source.UserID)
+	}
+
+	return payload, nil
 }
 
 // connectLINE は NATS への接続を一定回数リトライしながら確立します。
