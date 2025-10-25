@@ -1,2 +1,5 @@
 *.env
 agents.md
+
+.gitchache
+.gomodcache
