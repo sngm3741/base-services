@@ -35,10 +35,10 @@ type loginResponse struct {
 }
 
 type loginResultPayload struct {
-	AccessToken string         `json:"accessToken"`
-	TokenType   string         `json:"tokenType"`
-	ExpiresIn   int            `json:"expiresIn"`
-	LineUser    loginLineUser  `json:"lineUser"`
+	AccessToken string        `json:"accessToken"`
+	TokenType   string        `json:"tokenType"`
+	ExpiresIn   int           `json:"expiresIn"`
+	LineUser    loginLineUser `json:"lineUser"`
 }
 
 type loginLineUser struct {
@@ -164,6 +164,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		errorDescription := r.URL.Query().Get("error_description")
 		s.logger.Printf("LINE login returned error: %s (%s)", errorCode, errorDescription)
 		s.renderResultPage(w, loginResult{
+			Type:    loginResultMessageType,
 			Success: false,
 			Error:   fmt.Sprintf("LINE認証がキャンセルされました: %s", errorCode),
 		})
@@ -181,6 +182,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrStateExpired) {
 			s.renderResultPage(w, loginResult{
+				Type:    loginResultMessageType,
 				Success: false,
 				State:   stateParam,
 				Error:   "ログインの有効期限が切れました。もう一度お試しください。",
@@ -189,6 +191,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		}
 		s.logger.Printf("state verification failed: %v", err)
 		s.renderResultPage(w, loginResult{
+			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
 			Error:   "無効なログイン試行です。再度お試しください。",
@@ -203,6 +206,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logger.Printf("failed to exchange token: %v", err)
 		s.renderResultPage(w, loginResult{
+			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
 			Error:   "LINE認証との通信に失敗しました。時間を置いて再度お試しください。",
@@ -214,6 +218,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logger.Printf("failed to fetch profile: %v", err)
 		s.renderResultPage(w, loginResult{
+			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
 			Error:   "LINEプロフィールの取得に失敗しました。",
@@ -225,6 +230,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logger.Printf("failed to issue app token: %v", err)
 		s.renderResultPage(w, loginResult{
+			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
 			Error:   "アクセストークンの生成に失敗しました。",
@@ -233,6 +239,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := loginResult{
+		Type:    loginResultMessageType,
 		Success: true,
 		State:   stateParam,
 		Origin:  payload.Origin,
@@ -292,7 +299,10 @@ func (s *Server) issueAppToken(profile *lineProfile) (string, int, error) {
 	return unsigned + "." + signature, int(s.cfg.JWTExpiresIn.Seconds()), nil
 }
 
+const loginResultMessageType = "line-login-result"
+
 type loginResult struct {
+	Type    string              `json:"type"`
 	Success bool                `json:"success"`
 	State   string              `json:"state,omitempty"`
 	Origin  string              `json:"origin,omitempty"`
