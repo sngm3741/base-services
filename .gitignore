@@ -1,5 +1,5 @@
 *.env
 agents.md
 
-.gocache
-.gomodcache
+**/.gocache/
+**/.gomodcache/
