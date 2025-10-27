@@ -8,44 +8,48 @@ import (
 )
 
 type Config struct {
-	HTTPAddr          string
-	ChannelID         string
-	ChannelSecret     string
-	RedirectURI       string
-	Scopes            []string
-	StateSecret       []byte
-	StateTTL          time.Duration
-	AllowedOrigins    map[string]struct{}
-	JWTSecret         []byte
-	JWTIssuer         string
-	JWTAudience       string
-	JWTExpiresIn      time.Duration
-	AuthorizeEndpoint string
-	TokenEndpoint     string
-	ProfileEndpoint   string
-	BotPrompt         string
-	HTTPTimeout       time.Duration
+	HTTPAddr              string
+	ChannelID             string
+	ChannelSecret         string
+	RedirectURI           string
+	Scopes                []string
+	StateSecret           []byte
+	StateTTL              time.Duration
+	AllowedOrigins        map[string]struct{}
+	JWTSecret             []byte
+	JWTIssuer             string
+	JWTAudience           string
+	JWTExpiresIn          time.Duration
+	AuthorizeEndpoint     string
+	TokenEndpoint         string
+	ProfileEndpoint       string
+	BotPrompt             string
+	HTTPTimeout           time.Duration
+	RedirectPath          string
+	DefaultRedirectOrigin string
 }
 
 func LoadConfig() (Config, error) {
 	cfg := Config{
-		HTTPAddr:          getEnvOrDefault("AUTH_LINE_HTTP_ADDR", ":8080"),
-		ChannelID:         strings.TrimSpace(os.Getenv("AUTH_LINE_CHANNEL_ID")),
-		ChannelSecret:     strings.TrimSpace(os.Getenv("AUTH_LINE_CHANNEL_SECRET")),
-		RedirectURI:       strings.TrimSpace(os.Getenv("AUTH_LINE_REDIRECT_URI")),
-		Scopes:            parseList("AUTH_LINE_SCOPES", []string{"profile", "openid"}),
-		StateSecret:       []byte(strings.TrimSpace(os.Getenv("AUTH_LINE_STATE_SECRET"))),
-		StateTTL:          parseDuration("AUTH_LINE_STATE_TTL", 10*time.Minute),
-		AllowedOrigins:    parseOrigins("AUTH_LINE_ALLOWED_ORIGINS"),
-		JWTSecret:         []byte(strings.TrimSpace(os.Getenv("AUTH_LINE_JWT_SECRET"))),
-		JWTIssuer:         getEnvOrDefault("AUTH_LINE_JWT_ISSUER", "auth-line"),
-		JWTAudience:       strings.TrimSpace(os.Getenv("AUTH_LINE_JWT_AUDIENCE")),
-		JWTExpiresIn:      parseDuration("AUTH_LINE_JWT_EXPIRES_IN", 24*time.Hour),
-		AuthorizeEndpoint: getEnvOrDefault("AUTH_LINE_AUTHORIZE_ENDPOINT", "https://access.line.me/oauth2/v2.1/authorize"),
-		TokenEndpoint:     getEnvOrDefault("AUTH_LINE_TOKEN_ENDPOINT", "https://api.line.me/oauth2/v2.1/token"),
-		ProfileEndpoint:   getEnvOrDefault("AUTH_LINE_PROFILE_ENDPOINT", "https://api.line.me/v2/profile"),
-		BotPrompt:         getEnvOrDefault("AUTH_LINE_BOT_PROMPT", ""),
-		HTTPTimeout:       parseDuration("AUTH_LINE_HTTP_TIMEOUT", 10*time.Second),
+		HTTPAddr:              getEnvOrDefault("AUTH_LINE_HTTP_ADDR", ":8080"),
+		ChannelID:             strings.TrimSpace(os.Getenv("AUTH_LINE_CHANNEL_ID")),
+		ChannelSecret:         strings.TrimSpace(os.Getenv("AUTH_LINE_CHANNEL_SECRET")),
+		RedirectURI:           strings.TrimSpace(os.Getenv("AUTH_LINE_REDIRECT_URI")),
+		Scopes:                parseList("AUTH_LINE_SCOPES", []string{"profile", "openid"}),
+		StateSecret:           []byte(strings.TrimSpace(os.Getenv("AUTH_LINE_STATE_SECRET"))),
+		StateTTL:              parseDuration("AUTH_LINE_STATE_TTL", 10*time.Minute),
+		AllowedOrigins:        parseOrigins("AUTH_LINE_ALLOWED_ORIGINS"),
+		JWTSecret:             []byte(strings.TrimSpace(os.Getenv("AUTH_LINE_JWT_SECRET"))),
+		JWTIssuer:             getEnvOrDefault("AUTH_LINE_JWT_ISSUER", "auth-line"),
+		JWTAudience:           strings.TrimSpace(os.Getenv("AUTH_LINE_JWT_AUDIENCE")),
+		JWTExpiresIn:          parseDuration("AUTH_LINE_JWT_EXPIRES_IN", 24*time.Hour),
+		AuthorizeEndpoint:     getEnvOrDefault("AUTH_LINE_AUTHORIZE_ENDPOINT", "https://access.line.me/oauth2/v2.1/authorize"),
+		TokenEndpoint:         getEnvOrDefault("AUTH_LINE_TOKEN_ENDPOINT", "https://api.line.me/oauth2/v2.1/token"),
+		ProfileEndpoint:       getEnvOrDefault("AUTH_LINE_PROFILE_ENDPOINT", "https://api.line.me/v2/profile"),
+		BotPrompt:             getEnvOrDefault("AUTH_LINE_BOT_PROMPT", ""),
+		HTTPTimeout:           parseDuration("AUTH_LINE_HTTP_TIMEOUT", 10*time.Second),
+		RedirectPath:          getEnvOrDefault("AUTH_LINE_REDIRECT_PATH", "/"),
+		DefaultRedirectOrigin: strings.TrimSpace(os.Getenv("AUTH_LINE_DEFAULT_REDIRECT_ORIGIN")),
 	}
 
 	if cfg.ChannelID == "" {

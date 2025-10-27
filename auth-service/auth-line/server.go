@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -158,44 +160,56 @@ func (s *Server) handleLoginStart(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	stateParam := r.URL.Query().Get("state")
 
-	errorCode := r.URL.Query().Get("error")
-	if errorCode != "" {
+	if errorCode := r.URL.Query().Get("error"); errorCode != "" {
 		errorDescription := r.URL.Query().Get("error_description")
 		s.logger.Printf("LINE login returned error: %s (%s)", errorCode, errorDescription)
-		s.renderResultPage(w, loginResult{
+		result := loginResult{
 			Type:    loginResultMessageType,
 			Success: false,
+			State:   stateParam,
 			Error:   fmt.Sprintf("LINE認証がキャンセルされました: %s", errorCode),
-		})
+		}
+		if payload, err := s.stateMgr.decode(stateParam); err == nil {
+			result.Origin = payload.Origin
+		}
+		s.redirectWithResult(w, r, result)
 		return
 	}
 
 	code := r.URL.Query().Get("code")
-	stateParam := r.URL.Query().Get("state")
 	if code == "" || stateParam == "" {
-		http.Error(w, "invalid callback parameters", http.StatusBadRequest)
+		result := loginResult{
+			Type:    loginResultMessageType,
+			Success: false,
+			State:   stateParam,
+			Error:   "無効なログイン応答です。再度お試しください。",
+		}
+		if payload, err := s.stateMgr.decode(stateParam); err == nil {
+			result.Origin = payload.Origin
+		}
+		s.redirectWithResult(w, r, result)
 		return
 	}
 
 	payload, err := s.stateMgr.verify(stateParam)
 	if err != nil {
-		if errors.Is(err, ErrStateExpired) {
-			s.renderResultPage(w, loginResult{
-				Type:    loginResultMessageType,
-				Success: false,
-				State:   stateParam,
-				Error:   "ログインの有効期限が切れました。もう一度お試しください。",
-			})
-			return
-		}
-		s.logger.Printf("state verification failed: %v", err)
-		s.renderResultPage(w, loginResult{
+		result := loginResult{
 			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
-			Error:   "無効なログイン試行です。再度お試しください。",
-		})
+		}
+		if errors.Is(err, ErrStateExpired) {
+			result.Error = "ログインの有効期限が切れました。もう一度お試しください。"
+		} else {
+			s.logger.Printf("state verification failed: %v", err)
+			result.Error = "無効なログイン試行です。再度お試しください。"
+		}
+		if extracted, decodeErr := s.stateMgr.decode(stateParam); decodeErr == nil {
+			result.Origin = extracted.Origin
+		}
+		s.redirectWithResult(w, r, result)
 		return
 	}
 
@@ -205,10 +219,11 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	tokenResp, err := s.exchangeToken(ctx, code)
 	if err != nil {
 		s.logger.Printf("failed to exchange token: %v", err)
-		s.renderResultPage(w, loginResult{
+		s.redirectWithResult(w, r, loginResult{
 			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
+			Origin:  payload.Origin,
 			Error:   "LINE認証との通信に失敗しました。時間を置いて再度お試しください。",
 		})
 		return
@@ -217,10 +232,11 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	profile, err := s.fetchProfile(ctx, tokenResp.AccessToken)
 	if err != nil {
 		s.logger.Printf("failed to fetch profile: %v", err)
-		s.renderResultPage(w, loginResult{
+		s.redirectWithResult(w, r, loginResult{
 			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
+			Origin:  payload.Origin,
 			Error:   "LINEプロフィールの取得に失敗しました。",
 		})
 		return
@@ -229,10 +245,11 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	appToken, expiresIn, err := s.issueAppToken(profile)
 	if err != nil {
 		s.logger.Printf("failed to issue app token: %v", err)
-		s.renderResultPage(w, loginResult{
+		s.redirectWithResult(w, r, loginResult{
 			Type:    loginResultMessageType,
 			Success: false,
 			State:   stateParam,
+			Origin:  payload.Origin,
 			Error:   "アクセストークンの生成に失敗しました。",
 		})
 		return
@@ -255,7 +272,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	s.renderResultPage(w, result)
+	s.redirectWithResult(w, r, result)
 }
 
 func (s *Server) issueAppToken(profile *lineProfile) (string, int, error) {
@@ -310,22 +327,78 @@ type loginResult struct {
 	Payload *loginResultPayload `json:"payload,omitempty"`
 }
 
-func (s *Server) renderResultPage(w http.ResponseWriter, result loginResult) {
-	origin := result.Origin
-	if origin == "" {
-		if payload, err := s.stateMgr.verify(result.State); err == nil {
+func (s *Server) redirectWithResult(w http.ResponseWriter, r *http.Request, result loginResult) {
+	target, err := s.buildRedirectURL(result)
+	if err != nil {
+		s.logger.Printf("failed to build redirect URL: %v", err)
+		s.renderFallbackPage(w, result)
+		return
+	}
+	http.Redirect(w, r, target, http.StatusSeeOther)
+}
+
+func (s *Server) buildRedirectURL(result loginResult) (string, error) {
+	origin := strings.TrimSpace(result.Origin)
+	if origin == "" && result.State != "" {
+		if payload, err := s.stateMgr.decode(result.State); err == nil {
 			origin = payload.Origin
 		}
 	}
-	data, err := json.Marshal(result)
-	if err != nil {
-		s.logger.Printf("failed to marshal login result: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	if origin == "" {
+		origin = strings.TrimSpace(s.cfg.DefaultRedirectOrigin)
+	}
+	if origin == "" {
+		return "", fmt.Errorf("redirect origin is empty")
 	}
 
-	if origin == "" {
-		origin = "*"
+	base, err := url.Parse(origin)
+	if err != nil {
+		return "", fmt.Errorf("invalid redirect origin %q: %w", origin, err)
+	}
+
+	path := strings.TrimSpace(s.cfg.RedirectPath)
+	if path == "" {
+		path = "/"
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	base.Path = path
+	base.RawQuery = ""
+
+	data, err := json.Marshal(result)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal login result: %w", err)
+	}
+
+	encoded := base64.RawURLEncoding.EncodeToString(data)
+	base.Fragment = "line-login=" + encoded
+
+	return base.String(), nil
+}
+
+func (s *Server) renderFallbackPage(w http.ResponseWriter, result loginResult) {
+	message := "LINEログインが完了しました。元の画面に戻ってください。"
+	if !result.Success && result.Error != "" {
+		message = result.Error
+	}
+
+	var linkHTML string
+	redirectOrigin := strings.TrimSpace(s.cfg.DefaultRedirectOrigin)
+	if redirectOrigin != "" {
+		path := strings.TrimSpace(s.cfg.RedirectPath)
+		if path == "" {
+			path = "/"
+		}
+		if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
+		link := strings.TrimRight(redirectOrigin, "/") + path
+		linkHTML = fmt.Sprintf(
+			`<p><a href="%s">こちらをタップしてトップページに戻ってください。</a></p>`,
+			template.HTMLEscapeString(link),
+		)
 	}
 
 	page := fmt.Sprintf(`<!DOCTYPE html>
@@ -334,25 +407,18 @@ func (s *Server) renderResultPage(w http.ResponseWriter, result loginResult) {
     <meta charset="utf-8" />
     <title>LINE ログイン</title>
     <style>
-      body { font-family: system-ui, sans-serif; padding: 24px; text-align: center; }
+      body { font-family: system-ui, sans-serif; padding: 24px; text-align: center; background: #f8fafc; color: #0f172a; }
+      a { color: #ec4899; font-weight: 600; text-decoration: none; }
     </style>
   </head>
   <body>
-    <p>このウィンドウは自動的に閉じます。</p>
-    <script>
-      (function() {
-        const data = JSON.parse(%q);
-        const targetOrigin = %q;
-        if (window.opener && !window.opener.closed && targetOrigin !== "*") {
-          window.opener.postMessage(data, targetOrigin);
-          window.close();
-        } else {
-          document.body.insertAdjacentHTML('beforeend', '<p>ウィンドウを閉じて元の画面に戻ってください。</p>');
-        }
-      })();
-    </script>
+    <p>%s</p>
+    %s
   </body>
-</html>`, string(data), origin)
+</html>`,
+		template.HTMLEscapeString(message),
+		linkHTML,
+	)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	io.WriteString(w, page)

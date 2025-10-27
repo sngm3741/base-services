@@ -57,6 +57,19 @@ func (m *stateManager) issue(origin string) (string, *statePayload, error) {
 }
 
 func (m *stateManager) verify(state string) (*statePayload, error) {
+	payload, err := m.decode(state)
+	if err != nil {
+		return nil, err
+	}
+
+	if time.Since(payload.IssuedAt) > m.ttl {
+		return nil, ErrStateExpired
+	}
+
+	return payload, nil
+}
+
+func (m *stateManager) decode(state string) (*statePayload, error) {
 	decoded, err := base64.RawURLEncoding.DecodeString(state)
 	if err != nil {
 		return nil, ErrInvalidState
@@ -87,10 +100,6 @@ func (m *stateManager) verify(state string) (*statePayload, error) {
 		return nil, ErrInvalidState
 	}
 	issuedAt := time.Unix(issuedUnix, 0).UTC()
-
-	if time.Since(issuedAt) > m.ttl {
-		return nil, ErrStateExpired
-	}
 
 	return &statePayload{
 		IssuedAt: issuedAt,
