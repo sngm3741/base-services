@@ -78,7 +78,7 @@ func handleMessage(data []byte, cfg config, client *http.Client) error {
 
 	eventType := strings.TrimSpace(payload.EventType)
 	if eventType == "" {
-		eventType = "message"
+		eventType = "system"
 	}
 
 	log.Printf("LINEイベント受信: destination=%s type=%s user=%s message=%s", payload.Destination, eventType, payload.UserID, string(payload.Message))
@@ -87,6 +87,9 @@ func handleMessage(data []byte, cfg config, client *http.Client) error {
 	case "follow":
 		return deliverToLine(payload.UserID, welcomeMessage(), cfg, client)
 	case "message":
+		log.Printf("ユーザー発言イベントのため応答をスキップ: user=%s", payload.UserID)
+		return nil
+	case "system", "notification":
 		text, err := extractMessageText(payload.Message)
 		if err != nil {
 			return fmt.Errorf("本文抽出に失敗: %w", err)
