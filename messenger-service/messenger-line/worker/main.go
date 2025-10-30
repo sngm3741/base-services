@@ -76,9 +76,14 @@ func handleMessage(data []byte, cfg config, client *http.Client) error {
 		return fmt.Errorf("payloadのJSONデコードに失敗: %w", err)
 	}
 
-	log.Printf("LINEイベント受信: destination=%s type=%s user=%s message=%s", payload.Destination, payload.EventType, payload.UserID, string(payload.Message))
+	eventType := strings.TrimSpace(payload.EventType)
+	if eventType == "" {
+		eventType = "message"
+	}
 
-	switch payload.EventType {
+	log.Printf("LINEイベント受信: destination=%s type=%s user=%s message=%s", payload.Destination, eventType, payload.UserID, string(payload.Message))
+
+	switch eventType {
 	case "follow":
 		return deliverToLine(payload.UserID, welcomeMessage(), cfg, client)
 	case "message":
