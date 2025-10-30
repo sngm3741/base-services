@@ -1,0 +1,26 @@
+services:
+  messenger-gateway:
+    build:
+      context: ./messenger-service/messenger-gateway
+      dockerfile: Dockerfile
+
+  messenger-line-webhook:
+    build:
+      context: ./messenger-service/messenger-line/webhook
+      dockerfile: Dockerfile
+
+  messenger-line-worker:
+    build:
+      context: ./messenger-service/messenger-line/worker
+      dockerfile: Dockerfile
+
+  auth-line:
+    build:
+      context: ./auth-service/auth-line
+      dockerfile: Dockerfile
+
+networks:
+  edge:
+    name: project01-edge-local
+    external: false
+    driver: bridge

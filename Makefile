@@ -3,13 +3,16 @@ COMPOSE ?= docker compose
 ROOT_STACK := docker-compose.yml
 REVERSE_PROXY_STACK := reverse-proxy/docker-compose.yml
 
-.PHONY: deploy up down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs fmt test
+.PHONY: deploy up up-local down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs fmt test
 
 deploy: nginx-up up
 
 up:
 	$(COMPOSE) -f $(ROOT_STACK) pull messenger-gateway messenger-line-webhook messenger-line-worker
 	$(COMPOSE) -f $(ROOT_STACK) up --remove-orphans -d nats messenger-gateway messenger-line-webhook messenger-line-worker
+
+up-local:
+	$(COMPOSE) -f $(ROOT_STACK) -f docker-compose.local.yml up --build --remove-orphans nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line
 
 down:
 	$(COMPOSE) -f $(ROOT_STACK) down

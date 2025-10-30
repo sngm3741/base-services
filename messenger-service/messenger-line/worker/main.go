@@ -22,7 +22,7 @@ const (
 	defaultLinePushEndpoint = "https://api.line.me/v2/bot/message/push"
 	maxConnectRetry         = 10
 
-	welcomeText = "友だち追加ありがとうございます！アンケート投稿はマイページからどうぞ。分からないことがあれば気軽に聞いてくださいね。"
+	welcomeText = "アカウント追加ありがとうございます。店舗選びのご相談承ります。"
 )
 
 // linePayload は messenger-line-webhook から流れてくるメッセージ形式。
