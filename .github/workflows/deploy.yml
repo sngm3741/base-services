@@ -37,6 +37,12 @@ jobs:
           docker tag $GHCR_IMAGE_PREFIX/messenger-line-worker:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-line-worker:latest
           docker push $GHCR_IMAGE_PREFIX/messenger-line-worker:${{ github.sha }}
           docker push $GHCR_IMAGE_PREFIX/messenger-line-worker:latest
+      - name: Build messenger-discord-incoming-worker image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/messenger-discord-incoming-worker:${{ github.sha }} ./messenger-service/messenger-discord/worker/incoming
+          docker tag $GHCR_IMAGE_PREFIX/messenger-discord-incoming-worker:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-discord-incoming-worker:latest
+          docker push $GHCR_IMAGE_PREFIX/messenger-discord-incoming-worker:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/messenger-discord-incoming-worker:latest
 
       - name: Build auth-line image
         run: |
@@ -68,5 +74,5 @@ jobs:
             cd ~/infra
             git fetch origin main
             git reset --hard origin/main
-            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
-            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
+            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
+            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter

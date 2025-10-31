@@ -47,6 +47,16 @@ services:
     networks:
       - backend
 
+  messenger-discord-incoming-worker:
+    image: ghcr.io/${GHCR_USER}/messenger-discord-incoming-worker:latest
+    env_file:
+      - ./.env
+    depends_on:
+      - nats
+    restart: unless-stopped
+    networks:
+      - backend
+
   auth-line:
     image: ghcr.io/${GHCR_USER}/auth-line:latest
     env_file:
