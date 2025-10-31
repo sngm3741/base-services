@@ -45,6 +45,13 @@ jobs:
           docker push $GHCR_IMAGE_PREFIX/auth-line:${{ github.sha }}
           docker push $GHCR_IMAGE_PREFIX/auth-line:latest
 
+      - name: Build auth-twitter image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/auth-twitter:${{ github.sha }} ./auth-service/auth-twitter
+          docker tag $GHCR_IMAGE_PREFIX/auth-twitter:${{ github.sha }} $GHCR_IMAGE_PREFIX/auth-twitter:latest
+          docker push $GHCR_IMAGE_PREFIX/auth-twitter:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/auth-twitter:latest
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -61,5 +68,5 @@ jobs:
             cd ~/infra
             git fetch origin main
             git reset --hard origin/main
-            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker auth-line
-            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line
+            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
+            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
