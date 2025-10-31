@@ -442,7 +442,7 @@ func (s *Server) buildRedirectURL(result loginResult) (string, error) {
 	}
 
 	encoded := base64.RawURLEncoding.EncodeToString(data)
-	base.Fragment = hashPrefix + encoded
+	base.Fragment = strings.TrimPrefix(hashPrefix, "#") + encoded
 
 	return base.String(), nil
 }
