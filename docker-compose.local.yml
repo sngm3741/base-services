@@ -19,6 +19,11 @@ services:
       context: ./auth-service/auth-line
       dockerfile: Dockerfile
 
+  auth-twitter:
+    build:
+      context: ./auth-service/auth-twitter
+      dockerfile: Dockerfile
+
 networks:
   edge:
     name: project01-edge-local

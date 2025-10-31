@@ -60,6 +60,19 @@ services:
       - LETSENCRYPT_HOST=${AUTH_LINE_VIRTUAL_HOST}
       - LETSENCRYPT_EMAIL=${AUTH_LINE_LETSENCRYPT_EMAIL}
 
+  auth-twitter:
+    image: ghcr.io/${GHCR_USER}/auth-twitter:latest
+    env_file:
+      - ./.env
+    restart: unless-stopped
+    networks:
+      - edge
+    environment:
+      - VIRTUAL_HOST=${AUTH_TWITTER_VIRTUAL_HOST}
+      - VIRTUAL_PORT=8080
+      - LETSENCRYPT_HOST=${AUTH_TWITTER_VIRTUAL_HOST}
+      - LETSENCRYPT_EMAIL=${AUTH_TWITTER_LETSENCRYPT_EMAIL}
+
 networks:
   edge:
     external: true

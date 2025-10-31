@@ -8,11 +8,11 @@ REVERSE_PROXY_STACK := reverse-proxy/docker-compose.yml
 deploy: nginx-up up
 
 up:
-	$(COMPOSE) -f $(ROOT_STACK) pull messenger-gateway messenger-line-webhook messenger-line-worker
-	$(COMPOSE) -f $(ROOT_STACK) up --remove-orphans -d nats messenger-gateway messenger-line-webhook messenger-line-worker
+	$(COMPOSE) -f $(ROOT_STACK) pull messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
+	$(COMPOSE) -f $(ROOT_STACK) up --remove-orphans -d nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
 
 up-local:
-	$(COMPOSE) -f $(ROOT_STACK) -f docker-compose.local.yml up --build --remove-orphans nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line
+	$(COMPOSE) -f $(ROOT_STACK) -f docker-compose.local.yml up --build --remove-orphans nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
 
 down:
 	$(COMPOSE) -f $(ROOT_STACK) down
