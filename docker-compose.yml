@@ -83,6 +83,19 @@ services:
       - LETSENCRYPT_HOST=${AUTH_TWITTER_VIRTUAL_HOST}
       - LETSENCRYPT_EMAIL=${AUTH_TWITTER_LETSENCRYPT_EMAIL}
 
+  media-static:
+    image: nginx:alpine
+    restart: unless-stopped
+    networks:
+      - edge
+    volumes:
+      - ${MEDIA_ROOT_HOST_PATH:-./media-static}:/usr/share/nginx/html:ro
+    environment:
+      - VIRTUAL_HOST=${MEDIA_VIRTUAL_HOST}
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=${MEDIA_VIRTUAL_HOST}
+      - LETSENCRYPT_EMAIL=${MEDIA_LETSENCRYPT_EMAIL}
+
 networks:
   edge:
     external: true
