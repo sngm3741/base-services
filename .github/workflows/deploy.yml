@@ -17,12 +17,12 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
 
-      - name: Build messenger-gateway image
+      - name: Build messenger-ingress image
         run: |
-          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/messenger-gateway:${{ github.sha }} ./messenger-service/messenger-gateway
-          docker tag $GHCR_IMAGE_PREFIX/messenger-gateway:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-gateway:latest
-          docker push $GHCR_IMAGE_PREFIX/messenger-gateway:${{ github.sha }}
-          docker push $GHCR_IMAGE_PREFIX/messenger-gateway:latest
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/messenger-ingress:${{ github.sha }} ./messenger-service/messenger-ingress
+          docker tag $GHCR_IMAGE_PREFIX/messenger-ingress:${{ github.sha }} $GHCR_IMAGE_PREFIX/messenger-ingress:latest
+          docker push $GHCR_IMAGE_PREFIX/messenger-ingress:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/messenger-ingress:latest
 
       - name: Build messenger-line-webhook image
         run: |
@@ -74,5 +74,5 @@ jobs:
             cd ~/infra
             git fetch origin main
             git reset --hard origin/main
-            docker compose pull messenger-gateway messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
-            docker compose up -d nats messenger-gateway messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
+            docker compose pull messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
+            docker compose up -d nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter

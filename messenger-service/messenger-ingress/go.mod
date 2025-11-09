@@ -1,4 +1,4 @@
-module messenger-gateway
+module messenger-ingress
 
 go 1.23.0
 

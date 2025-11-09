@@ -17,7 +17,7 @@ type Config struct {
 }
 
 const (
-	defaultHTTPAddr       = ":3000"
+	defaultHTTPAddr       = ":8080"
 	defaultNATSURL        = "nats://nats:4222"
 	defaultLineSubject    = "line.events"
 	defaultRequestTimeout = 5 * time.Second
@@ -25,16 +25,16 @@ const (
 
 var (
 	destinationsKeys = []string{
-		"MESSENGER_GATEWAY_DESTINATIONS",
+		"MESSENGER_INGRESS_DESTINATIONS",
 		"CORE_DESTINATIONS",
 	}
 	defaultDestinationKeys = []string{
-		"MESSENGER_GATEWAY_DEFAULT_DESTINATION",
+		"MESSENGER_INGRESS_DEFAULT_DESTINATION",
 		"CORE_DEFAULT_DESTINATION",
 		"MESSENGER_DEFAULT_DESTINATION",
 	}
 	requestTimeoutKeys = []string{
-		"MESSENGER_GATEWAY_REQUEST_TIMEOUT",
+		"MESSENGER_INGRESS_REQUEST_TIMEOUT",
 		"CORE_REQUEST_TIMEOUT",
 	}
 )
@@ -43,7 +43,7 @@ var (
 func LoadConfig() Config {
 	subjects := loadSubjects()
 	return Config{
-		HTTPAddr:           firstEnv([]string{"MESSENGER_GATEWAY_HTTP_ADDR", "CORE_HTTP_ADDR"}, defaultHTTPAddr),
+		HTTPAddr:           firstEnv([]string{"MESSENGER_INGRESS_HTTP_ADDR", "CORE_HTTP_ADDR"}, defaultHTTPAddr),
 		NATSURL:            firstEnv([]string{"NATS_URL"}, defaultNATSURL),
 		Subjects:           subjects,
 		DefaultDestination: resolveDefaultDestination(subjects),

@@ -26,7 +26,6 @@ const (
 )
 
 var errLineNoEvents = errors.New("line: eventsが空です")
-var jst = time.FixedZone("JST", 9*60*60)
 
 // lineMessagePayload はLINEイベントを標準化した中間フォーマット。
 type lineMessagePayload struct {
@@ -70,24 +69,14 @@ func main() {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Recoverer)
 
-	router.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store, max-age=0")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"status": "ok",
-			"date":   time.Now().In(jst).Format(time.RFC3339),
-		})
-	})
-
-	router.Post("/message/webhook", lineWebhookHandler(nc, cfg.lineSubject))
+	router.Post("/", lineWebhookHandler(nc, cfg.lineSubject))
 
 	srv := &http.Server{
 		Addr:    cfg.httpAddress,
 		Handler: router,
 	}
 
-	log.Printf("LINE Webhookサーバー起動: http://localhost%v/webhook", cfg.httpAddress)
+	log.Printf("LINE Webhookサーバー起動")
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("サーバーエラー: %v", err)

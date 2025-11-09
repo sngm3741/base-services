@@ -15,8 +15,6 @@ import (
 
 const maxRequestBody = 1 << 20 // 1 MiB
 
-var jst = time.FixedZone("JST", 9*60*60)
-
 // NewRouter wires HTTP routes to the provided message service.
 func NewRouter(service *MessageService, logger *log.Logger, timeout time.Duration) http.Handler {
 	h := &handler{
@@ -30,8 +28,7 @@ func NewRouter(service *MessageService, logger *log.Logger, timeout time.Duratio
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Recoverer)
 
-	router.Get("/healthz", h.health)
-	router.Post("/api/messages", h.sendMessage)
+	router.Post("/send", h.sendMessage)
 
 	return router
 }
@@ -40,14 +37,6 @@ type handler struct {
 	service *MessageService
 	logger  *log.Logger
 	timeout time.Duration
-}
-
-func (h *handler) health(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Cache-Control", "no-store, max-age=0")
-	writeJSON(w, http.StatusOK, map[string]string{
-		"status": "ok-test",
-		"date":   time.Now().In(jst).Format(time.RFC3339),
-	})
 }
 
 func (h *handler) sendMessage(w http.ResponseWriter, r *http.Request) {

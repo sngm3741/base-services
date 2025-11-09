@@ -22,7 +22,7 @@ const (
 func main() {
 	cfg := LoadConfig()
 
-	logger := log.New(os.Stdout, "[messenger-gateway] ", log.LstdFlags|log.Lmsgprefix)
+	logger := log.New(os.Stdout, "[messenger-ingress] ", log.LstdFlags|log.Lmsgprefix)
 	conn, err := connectNATS(cfg.NATSURL, logger)
 	if err != nil {
 		logger.Fatalf("failed to connect to NATS after retries: %v", err)
@@ -57,7 +57,7 @@ func main() {
 func connectNATS(url string, logger *log.Logger) (*nats.Conn, error) {
 	var lastErr error
 	for attempt := 1; attempt <= natsConnectRetry; attempt++ {
-		conn, err := nats.Connect(url, nats.MaxReconnects(-1), nats.Name("messenger-gateway"))
+		conn, err := nats.Connect(url, nats.MaxReconnects(-1), nats.Name("messenger-ingress"))
 		if err == nil {
 			logger.Printf("NATS に接続しました: %s", url)
 			return conn, nil

@@ -4,7 +4,7 @@
 
 ## 環境変数
 
-`.env` で以下を設定してください。
+`.env.production` や `.env.local` など、対象環境の設定ファイルで以下を指定してください。
 
 ```env
 MEDIA_VIRTUAL_HOST=media.example.space

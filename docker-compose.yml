@@ -5,42 +5,33 @@ services:
     networks:
       - backend
 
-  messenger-gateway:
-    image: ghcr.io/${GHCR_USER}/messenger-gateway:latest
+  messenger-ingress:
+    image: ghcr.io/${GHCR_USER}/messenger-ingress:latest
     env_file:
-      - ./.env
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
     depends_on:
       - nats
     restart: unless-stopped
     networks:
-      - edge
       - backend
-    environment:
-      - VIRTUAL_HOST=${MESSENGER_GATEWAY_VIRTUAL_HOST}
-      - VIRTUAL_PORT=3000
-      - LETSENCRYPT_HOST=${MESSENGER_GATEWAY_VIRTUAL_HOST}
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
 
   messenger-line-webhook:
     image: ghcr.io/${GHCR_USER}/messenger-line-webhook:latest
     env_file:
-      - ./.env
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
     depends_on:
       - nats
     restart: unless-stopped
     networks:
-      - edge
       - backend
-    environment:
-      - VIRTUAL_HOST=${MESSENGER_LINE_WEBHOOK_VIRTUAL_HOST}
-      - VIRTUAL_PORT=8080
-      - LETSENCRYPT_HOST=${MESSENGER_LINE_WEBHOOK_VIRTUAL_HOST}
-      - LETSENCRYPT_EMAIL=${MESSENGER_LINE_WEBHOOK_LETSENCRYPT_EMAIL}
 
   messenger-line-worker:
     image: ghcr.io/${GHCR_USER}/messenger-line-worker:latest
     env_file:
-      - ./.env
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
     depends_on:
       - nats
     restart: unless-stopped
@@ -50,7 +41,8 @@ services:
   messenger-discord-incoming-worker:
     image: ghcr.io/${GHCR_USER}/messenger-discord-incoming-worker:latest
     env_file:
-      - ./.env
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
     depends_on:
       - nats
     restart: unless-stopped
@@ -60,28 +52,20 @@ services:
   auth-line:
     image: ghcr.io/${GHCR_USER}/auth-line:latest
     env_file:
-      - ./.env
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
     restart: unless-stopped
     networks:
-      - edge
-    environment:
-      - VIRTUAL_HOST=${AUTH_LINE_VIRTUAL_HOST}
-      - VIRTUAL_PORT=8080
-      - LETSENCRYPT_HOST=${AUTH_LINE_VIRTUAL_HOST}
-      - LETSENCRYPT_EMAIL=${AUTH_LINE_LETSENCRYPT_EMAIL}
+      - backend
 
   auth-twitter:
     image: ghcr.io/${GHCR_USER}/auth-twitter:latest
     env_file:
-      - ./.env
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
     restart: unless-stopped
     networks:
-      - edge
-    environment:
-      - VIRTUAL_HOST=${AUTH_TWITTER_VIRTUAL_HOST}
-      - VIRTUAL_PORT=8080
-      - LETSENCRYPT_HOST=${AUTH_TWITTER_VIRTUAL_HOST}
-      - LETSENCRYPT_EMAIL=${AUTH_TWITTER_LETSENCRYPT_EMAIL}
+      - backend
 
   media-static:
     image: nginx:alpine
@@ -96,9 +80,14 @@ services:
       - LETSENCRYPT_HOST=${MEDIA_VIRTUAL_HOST}
       - LETSENCRYPT_EMAIL=${MEDIA_LETSENCRYPT_EMAIL}
 
+# コンテナやComposeスタックをup/downしてもネットワーク自体は消滅しないように外部ネットワークを使う設定(external: true) にしています。
+# プロジェクト起動の際は以下のコマンドを実行してネットワークを生成させてください。
+# docker network create --driver bridge infra-edge-network
+# docker network create --driver bridge infra-backend-network 
 networks:
   edge:
     external: true
-    name: project01-edge
+    name: infra-edge-network
   backend:
-    driver: bridge
+    external: true
+    name: infra-backend-network

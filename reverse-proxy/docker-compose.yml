@@ -1,4 +1,7 @@
 services:
+  #リバースプロキシ用のNginxのコンテナです。
+  # Dockerのソケットを利用して同一ホストの各コンテナの設定(以下)を監視して、指定された環境変数に応じてプロキシします。
+  # ＄VIRTUAL_HOST (ex: api.example.com) : api.example.comへのリクエストが、この環境変数を設定したコンテナにプロキシされます。
   nginx-proxy:
     image: nginxproxy/nginx-proxy:alpine
     labels:
@@ -7,30 +10,57 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      # 同じDockerホストを使っている各コンテナの環境変数を監視するためにソケットを利用しています。
+      # 監視した環境変数を元に、自動でルーティングの構成を行います。
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./letsencrypt:/etc/nginx/certs:rw
+      # acmeコンテナで発行されたTLS証明書を読み込むためのマウントです。
+      - ./letsencrypt:/etc/nginx/certs:ro
+      # 各種ホスト名ごとのカスタム設定をnginxに差し込むためのディレクトリです。
       - ./vhost.d:/etc/nginx/vhost.d
+      # デフォルトの静的ファイルとACMEチャレンジファイル用の共有領域です。
       - ./html:/usr/share/nginx/html
     restart: unless-stopped
     networks:
+      # edge(外部とのやり取り)とbackend(内部でのやり取り)で境界を作るためにネットワークを分けています。
       - edge
+      - backend
 
+  # acme-companionはnginx-proxy用の補助システムです。
+  # Let's EncryptのACMEプロトコル(TLS証明書の自動発行) を使って証明書の取得・更新を自動化します。
+  # Dockerのソケットを利用して同一ホストの各コンテナの設定(以下)を監視して、指定された環境変数に応じて証明書の取得・更新が実行されます。
+  # $LETSENCRYPT_HOST (ex: api.example.com) : Let's Encryptの証明書を発行する対象ホスト名です。
+  # $LETSENCRYPT_EMAIL  (ex: example@gmail.com) : Let's Encryptの証明書の更新リマインダなどの送付先です。
   acme-companion:
     image: nginxproxy/acme-companion
     env_file:
-      - ../.env
+      - ../env/shared.env
+      - ${ENVIRONMENT_FILE:-../env/production.env}
     volumes:
+      # 同じDockerホストを使っている各コンテナの環境変数を監視するためにソケットを利用しています。
+      # 監視した環境変数を元に、TLS証明書の自動発行・更新を行います。
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # 発行したTLS証明書をコンテナ内の/etc/nginx/certsにread-writeで保存します。
+      # ホスト側の./letsencryptをマウントしてnginxコンテナと証明書を共有します。
       - ./letsencrypt:/etc/nginx/certs:rw
+      # 各種ホスト名ごとのカスタム設定をnginxに差し込むためのディレクトリです。
       - ./vhost.d:/etc/nginx/vhost.d
+      # デフォルトの静的ファイルとACMEチャレンジファイル用の共有領域です。
       - ./html:/usr/share/nginx/html
     depends_on:
       - nginx-proxy
     restart: unless-stopped
     networks:
+      # 証明書管理(Let's EncryptのHTTPチャレンジ) はedgeネットワーク(外部とのやり取りのみ) で完結するためbackendネットワークへの参加は不要です。
       - edge
 
+# コンテナやComposeスタックをup/downしてもネットワーク自体は消滅しないように外部ネットワークを使う設定(external: true) にしています。
+# プロジェクト起動の際は以下のコマンドを実行してネットワークを生成させてください。
+# docker network create --driver bridge infra-edge-network
+# docker network create --driver bridge infra-backend-network 
 networks:
   edge:
-    name: project01-edge
-    driver: bridge
+    external: true
+    name: infra-edge-network
+  backend:
+    external: true
+    name: infra-backend-network

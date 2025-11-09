@@ -1,38 +1,54 @@
 COMPOSE ?= docker compose
 
+ENV_DIR := env
+SHARED_ENV := $(ENV_DIR)/shared.env
+ENVIRONMENT ?= production
+
+compose = ENVIRONMENT=$(1) ENVIRONMENT_FILE=$(CURDIR)/$(ENV_DIR)/$(1).env $(COMPOSE) --env-file $(SHARED_ENV) --env-file $(ENV_DIR)/$(1).env
+
 ROOT_STACK := docker-compose.yml
 REVERSE_PROXY_STACK := reverse-proxy/docker-compose.yml
+NETWORKS := infra-edge-network infra-backend-network
+DEV_SERVICES := nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
 
-.PHONY: deploy up up-local down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs fmt test
+.PHONY: deploy up up-local down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs \
+	fmt test dev-network dev dev-down dev-logs reverse-proxy-dev reverse-proxy-dev-down
 
 deploy: nginx-up up
 
 up:
-	$(COMPOSE) -f $(ROOT_STACK) pull messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
-	$(COMPOSE) -f $(ROOT_STACK) up --remove-orphans -d nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) pull messenger-ingress messenger-line-webhook messenger-line-worker auth-line auth-twitter
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) up --remove-orphans -d nats messenger-ingress messenger-line-webhook messenger-line-worker auth-line auth-twitter
 
 up-local:
-	$(COMPOSE) -f $(ROOT_STACK) -f docker-compose.local.yml up --build --remove-orphans nats messenger-gateway messenger-line-webhook messenger-line-worker auth-line auth-twitter
+	$(call compose,local) -f $(ROOT_STACK) -f docker-compose.local.yml up --build --remove-orphans nats messenger-ingress messenger-line-webhook messenger-line-worker auth-line auth-twitter
 
 down:
-	$(COMPOSE) -f $(ROOT_STACK) down
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) down
 
 restart: down up
 
 logs:
-	$(COMPOSE) -f $(ROOT_STACK) logs -f
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) logs -f
 
 ps:
-	$(COMPOSE) -f $(ROOT_STACK) ps
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) ps
 
 reverse-proxy-up:
-	$(COMPOSE) -f $(REVERSE_PROXY_STACK) up --build -d
+	$(call compose,$(ENVIRONMENT)) -f $(REVERSE_PROXY_STACK) up --build -d
 
 reverse-proxy-down:
-	$(COMPOSE) -f $(REVERSE_PROXY_STACK) down
+	$(call compose,$(ENVIRONMENT)) -f $(REVERSE_PROXY_STACK) down
 
 reverse-proxy-logs:
-	$(COMPOSE) -f $(REVERSE_PROXY_STACK) logs -f
+	$(call compose,$(ENVIRONMENT)) -f $(REVERSE_PROXY_STACK) logs -f
+
+reverse-proxy-dev: dev-network
+	$(call compose,local) -f $(REVERSE_PROXY_STACK) up --build -d nginx-proxy
+
+reverse-proxy-dev-down:
+	$(call compose,$(ENVIRONMENT)) -f $(REVERSE_PROXY_STACK) stop nginx-proxy || true
+	$(call compose,$(ENVIRONMENT)) -f $(REVERSE_PROXY_STACK) rm -f nginx-proxy || true
 
 nginx-up: reverse-proxy-up
 
@@ -41,7 +57,24 @@ nginx-down: reverse-proxy-down
 nginx-logs: reverse-proxy-logs
 
 fmt:
-	cd messenger-service/messenger-gateway && gofmt -w ./cmd ./internal
+	cd messenger-service/messenger-ingress && gofmt -w ./cmd ./internal
 
 test:
-	cd messenger-service/messenger-gateway && go test ./...
+	cd messenger-service/messenger-ingress && go test ./...
+
+dev-network:
+	@for net in $(NETWORKS); do \
+		if ! docker network inspect $$net >/dev/null 2>&1; then \
+			echo "Creating docker network $$net"; \
+			docker network create --driver bridge $$net >/dev/null; \
+		fi; \
+	done
+
+dev: dev-network
+	$(call compose,local) -f $(ROOT_STACK) -f docker-compose.local.yml up --build -d $(DEV_SERVICES)
+
+dev-logs:
+	$(call compose,local) -f $(ROOT_STACK) -f docker-compose.local.yml logs -f $(DEV_SERVICES)
+
+dev-down:
+	$(call compose,local) -f $(ROOT_STACK) -f docker-compose.local.yml down

@@ -1,0 +1,12 @@
+# makoto-club API を makoto-club サブドメイン配下で公開する設定。
+# /api/* のリクエストを backend の makoto-club-api コンテナへ転送します。
+
+location /api/ {
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    rewrite ^/api/?(.*)$ /$1 break;
+    proxy_pass http://makoto-club-api:8080;
+    proxy_read_timeout 60s;
+}
