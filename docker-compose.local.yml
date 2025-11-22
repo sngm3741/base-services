@@ -46,3 +46,11 @@ services:
     env_file:
       - ./env/shared.env
       - ./env/local.env
+
+  upload-service:
+    build:
+      context: ./upload-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/shared.env
+      - ./env/local.env

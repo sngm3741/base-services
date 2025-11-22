@@ -67,18 +67,22 @@ services:
     networks:
       - backend
 
-  media-static:
-    image: nginx:alpine
+  upload-service:
+    build:
+      context: ./upload-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/shared.env
+      - ${ENVIRONMENT_FILE:-./env/production.env}
+    environment:
+      - VIRTUAL_HOST=${UPLOAD_API_VIRTUAL_HOST}
+      - VIRTUAL_PORT=8080
+      - LETSENCRYPT_HOST=${UPLOAD_API_VIRTUAL_HOST}
+      - LETSENCRYPT_EMAIL=${UPLOAD_API_LETSENCRYPT_EMAIL}
     restart: unless-stopped
     networks:
       - edge
-    volumes:
-      - ${MEDIA_ROOT_HOST_PATH:-./media-static}:/usr/share/nginx/html:ro
-    environment:
-      - VIRTUAL_HOST=${MEDIA_VIRTUAL_HOST}
-      - VIRTUAL_PORT=80
-      - LETSENCRYPT_HOST=${MEDIA_VIRTUAL_HOST}
-      - LETSENCRYPT_EMAIL=${MEDIA_LETSENCRYPT_EMAIL}
+      - backend
 
 # コンテナやComposeスタックをup/downしてもネットワーク自体は消滅しないように外部ネットワークを使う設定(external: true) にしています。
 # プロジェクト起動の際は以下のコマンドを実行してネットワークを生成させてください。

@@ -9,7 +9,7 @@ compose = ENVIRONMENT=$(1) ENVIRONMENT_FILE=$(CURDIR)/$(ENV_DIR)/$(1).env $(COMP
 ROOT_STACK := docker-compose.yml
 REVERSE_PROXY_STACK := reverse-proxy/docker-compose.yml
 NETWORKS := infra-edge-network infra-backend-network
-DEV_SERVICES := nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
+DEV_SERVICES := nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
 
 .PHONY: deploy up up-local down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs \
 	fmt test dev-network dev dev-down dev-logs reverse-proxy-dev reverse-proxy-dev-down
