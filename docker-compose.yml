@@ -68,9 +68,7 @@ services:
       - backend
 
   upload-service:
-    build:
-      context: ./upload-service
-      dockerfile: Dockerfile
+    image: ghcr.io/${GHCR_USER}/upload-service:latest
     env_file:
       - ./env/shared.env
       - ${ENVIRONMENT_FILE:-./env/production.env}
