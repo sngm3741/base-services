@@ -1,10 +1,14 @@
 COMPOSE ?= docker compose
 
 ENV_DIR := env
-SHARED_ENV := $(ENV_DIR)/shared.env
 ENVIRONMENT ?= production
 
-compose = ENVIRONMENT=$(1) ENVIRONMENT_FILE=$(CURDIR)/$(ENV_DIR)/$(1).env $(COMPOSE) --env-file $(SHARED_ENV) --env-file $(ENV_DIR)/$(1).env
+# use absolute paths so the make working directoryに依存しない
+SHARED_ENV := $(CURDIR)/$(ENV_DIR)/shared.env
+env_file = $(CURDIR)/$(ENV_DIR)/$(1).env
+
+compose = ENVIRONMENT=$(1) ENVIRONMENT_FILE=$(call env_file,$(1)) $(COMPOSE) --env-file $(SHARED_ENV) --env-file $(call env_file,$(1))
+compose_abs = $(call compose,$(1))
 
 ROOT_STACK := docker-compose.yml
 REVERSE_PROXY_STACK := reverse-proxy/docker-compose.yml
@@ -14,15 +18,15 @@ DEV_SERVICES := nats messenger-ingress messenger-line-webhook messenger-line-wor
 .PHONY: prod-up prod-down prod-restart prod-logs
 
 prod-up: dev-network
-	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) up --build -d
+	$(call compose_abs,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) up --build -d
 
 prod-down:
-	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) down
+	$(call compose_abs,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) down
 
 prod-restart: prod-down prod-up
 
 prod-logs:
-	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) logs -f
+	$(call compose_abs,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) logs -f
 
 .PHONY: deploy up up-local down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs \
 	fmt test dev-network dev dev-down dev-logs reverse-proxy-dev reverse-proxy-dev-down
