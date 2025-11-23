@@ -8,8 +8,8 @@ services:
   messenger-ingress:
     image: ghcr.io/${GHCR_USER}/messenger-ingress:latest
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR}/production.env}
     depends_on:
       - nats
     restart: unless-stopped
@@ -19,8 +19,8 @@ services:
   messenger-line-webhook:
     image: ghcr.io/${GHCR_USER}/messenger-line-webhook:latest
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR}/production.env}
     depends_on:
       - nats
     restart: unless-stopped
@@ -30,8 +30,8 @@ services:
   messenger-line-worker:
     image: ghcr.io/${GHCR_USER}/messenger-line-worker:latest
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR}/production.env}
     depends_on:
       - nats
     restart: unless-stopped
@@ -41,8 +41,8 @@ services:
   messenger-discord-incoming-worker:
     image: ghcr.io/${GHCR_USER}/messenger-discord-incoming-worker:latest
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR}/production.env}
     depends_on:
       - nats
     restart: unless-stopped
@@ -52,8 +52,8 @@ services:
   auth-line:
     image: ghcr.io/${GHCR_USER}/auth-line:latest
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR}/production.env}
     restart: unless-stopped
     networks:
       - backend
@@ -61,8 +61,8 @@ services:
   auth-twitter:
     image: ghcr.io/${GHCR_USER}/auth-twitter:latest
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR}/production.env}
     restart: unless-stopped
     networks:
       - backend
@@ -72,8 +72,8 @@ services:
       context: ./upload-service
       dockerfile: Dockerfile
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ${ENV_DIR:-./env}/shared.env
+      - ${ENVIRONMENT_FILE:-${ENV_DIR:-./env}/production.env}
     environment:
       - VIRTUAL_HOST=${UPLOAD_API_VIRTUAL_HOST}
       - VIRTUAL_PORT=8080
