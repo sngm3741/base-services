@@ -3,11 +3,14 @@ COMPOSE ?= docker compose
 ENV_DIR := env
 ENVIRONMENT ?= production
 
-# use absolute paths so the make working directoryに依存しない
-SHARED_ENV := $(CURDIR)/$(ENV_DIR)/shared.env
-env_file = $(CURDIR)/$(ENV_DIR)/$(1).env
+# use absolute paths and fix project directory
+PROJECT_DIR := $(CURDIR)
+SHARED_ENV := $(PROJECT_DIR)/$(ENV_DIR)/shared.env
+env_file = $(PROJECT_DIR)/$(ENV_DIR)/$(1).env
 
-compose = ENVIRONMENT=$(1) ENVIRONMENT_FILE=$(call env_file,$(1)) $(COMPOSE) --env-file $(SHARED_ENV) --env-file $(call env_file,$(1))
+compose = ENVIRONMENT=$(1) ENVIRONMENT_FILE=$(call env_file,$(1)) $(COMPOSE) \
+          --project-directory $(PROJECT_DIR) \
+          --env-file $(SHARED_ENV) --env-file $(call env_file,$(1))
 compose_abs = $(call compose,$(1))
 
 ROOT_STACK := docker-compose.yml
