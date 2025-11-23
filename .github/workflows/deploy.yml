@@ -57,6 +57,12 @@ jobs:
           docker tag $GHCR_IMAGE_PREFIX/auth-twitter:${{ github.sha }} $GHCR_IMAGE_PREFIX/auth-twitter:latest
           docker push $GHCR_IMAGE_PREFIX/auth-twitter:${{ github.sha }}
           docker push $GHCR_IMAGE_PREFIX/auth-twitter:latest
+      - name: Build upload-service image
+        run: |
+          docker build --platform linux/amd64 -t $GHCR_IMAGE_PREFIX/upload-service:${{ github.sha }} ./upload-service
+          docker tag $GHCR_IMAGE_PREFIX/upload-service:${{ github.sha }} $GHCR_IMAGE_PREFIX/upload-service:latest
+          docker push $GHCR_IMAGE_PREFIX/upload-service:${{ github.sha }}
+          docker push $GHCR_IMAGE_PREFIX/upload-service:latest
 
   deploy:
     needs: build-and-push
@@ -71,10 +77,10 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-            cd ~/infra
-            git fetch origin main
-            git reset --hard origin/main
-            docker network create infra-edge-network || true
-            docker network create infra-backend-network || true
-            docker compose pull messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
-            docker compose up -d nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter
+          cd ~/infra
+          git fetch origin main
+          git reset --hard origin/main
+          docker network create infra-edge-network || true
+          docker network create infra-backend-network || true
+          docker compose pull messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
+          docker compose up -d nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
