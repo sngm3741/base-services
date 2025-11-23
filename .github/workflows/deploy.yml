@@ -77,10 +77,10 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-          cd ~/infra
-          git fetch origin main
-          git reset --hard origin/main
-          docker network create infra-edge-network || true
-          docker network create infra-backend-network || true
-          docker compose pull messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
-          docker compose up -d nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
+            cd ~/infra
+            git fetch origin main
+            git reset --hard origin/main
+            docker network create infra-edge-network || true
+            docker network create infra-backend-network || true
+            docker compose pull messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
+            docker compose up -d nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
