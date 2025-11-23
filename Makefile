@@ -11,6 +11,19 @@ REVERSE_PROXY_STACK := reverse-proxy/docker-compose.yml
 NETWORKS := infra-edge-network infra-backend-network
 DEV_SERVICES := nats messenger-ingress messenger-line-webhook messenger-line-worker messenger-discord-incoming-worker auth-line auth-twitter upload-service
 
+.PHONY: prod-up prod-down prod-restart prod-logs
+
+prod-up: dev-network
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) up --build -d
+
+prod-down:
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) down
+
+prod-restart: prod-down prod-up
+
+prod-logs:
+	$(call compose,$(ENVIRONMENT)) -f $(ROOT_STACK) -f $(REVERSE_PROXY_STACK) logs -f
+
 .PHONY: deploy up up-local down restart logs ps reverse-proxy-up reverse-proxy-down reverse-proxy-logs nginx-up nginx-down nginx-logs \
 	fmt test dev-network dev dev-down dev-logs reverse-proxy-dev reverse-proxy-dev-down
 
