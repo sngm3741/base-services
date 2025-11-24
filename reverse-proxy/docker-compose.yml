@@ -32,9 +32,11 @@ services:
   # $LETSENCRYPT_EMAIL  (ex: example@gmail.com) : Let's Encryptの証明書の更新リマインダなどの送付先です。
   acme-companion:
     image: nginxproxy/acme-companion
+    environment:
+      DEFAULT_EMAIL: ${DEFAULT_EMAIL:-admin@iqx9l9hxmw0dj3kt.space}
     env_file:
-      - ./env/shared.env
-      - ${ENVIRONMENT_FILE:-./env/production.env}
+      - ../env/shared.env
+      - ${ENVIRONMENT_FILE:-../env/production.env}
     volumes:
       # 同じDockerホストを使っている各コンテナの環境変数を監視するためにソケットを利用しています。
       # 監視した環境変数を元に、TLS証明書の自動発行・更新を行います。
