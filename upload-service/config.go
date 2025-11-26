@@ -20,7 +20,7 @@ type Config struct {
 
 const (
 	defaultHTTPAddr       = ":8080"
-	defaultMaxUploadBytes = int64(3 * 1024 * 1024) // 3MB
+	defaultMaxUploadBytes = int64(10 * 1024 * 1024) // 10MB
 )
 
 func LoadConfig() Config {
